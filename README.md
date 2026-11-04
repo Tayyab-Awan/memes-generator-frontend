@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meme Generator frontend
 
-## Getting Started
+Next.js (App Router) frontend for the Meme Generator API. Users upload an image and add captions. The backend renders the final meme, and the gallery shows every meme created.
 
-First, run the development server:
+Stack: Next.js 16, React 19, TypeScript (strict), Tailwind CSS 4, TanStack Query, Zod, Vitest, pnpm.
+
+## Setup
+
+Requirements: Node.js 20.19+ and pnpm 10.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app runs at <http://localhost:4000>. The backend must be running (default <http://localhost:3000>). Its Swagger docs are at `{NEXT_PUBLIC_API_URL}/docs`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### CORS
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The backend only accepts browser requests from the origins listed in its `CORS_ORIGIN` env var. The default is `http://localhost:5173`. Add this frontend's origin to the backend's `.env` (comma-separated) and restart it:
 
-## Learn More
+```env
+CORS_ORIGIN=http://localhost:4000
+```
 
-To learn more about Next.js, take a look at the following resources:
+If `CORS_ORIGIN` doesn't include this origin, creating a meme and loading the gallery fail with a network error in the browser. The meme detail page still works, because it's fetched on the server.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Name                  | Required | Example                 | Description                                                                                                              |
+| --------------------- | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_API_URL` | Yes      | `http://localhost:3000` | Base URL of the backend API. Used in the browser and on the server. Inlined at build time, so rebuild after changing it. |
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Script              | What it does                                  |
+| ------------------- | --------------------------------------------- |
+| `pnpm dev`          | Start the dev server on port 4000             |
+| `pnpm build`        | Production build                              |
+| `pnpm start`        | Serve the production build on port 4000       |
+| `pnpm lint`         | ESLint                                        |
+| `pnpm typecheck`    | Generate route types, then run `tsc --noEmit` |
+| `pnpm format`       | Format with Prettier                          |
+| `pnpm format:check` | Check formatting without writing              |
+| `pnpm test`         | Run unit tests once (Vitest)                  |
+| `pnpm test:watch`   | Run unit tests in watch mode                  |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Pages
+
+- `/`: create a meme. Pick an image (drag and drop or browse), edit 1 to 5 captions and see a live CSS preview. The preview is approximate; the server's render is final.
+- `/memes`: gallery with infinite scroll.
+- `/memes/[id]`: a single meme, with download, copy link and Open Graph tags for link previews.
+
+## Project structure
+
+```
+src/
+  app/                  routes only
+  features/
+    create-meme/        form, caption editor, preview, schema, mutation hook
+    gallery/            grid, card, infinite query hook
+    meme-detail/        detail view, download and copy actions
+  shared/
+    api/                fetch client, types, error parsing, query provider
+    ui/                 buttons, header, shared components
+    constants.ts        backend limits used for validation and UI
+```
+
+`src/shared/constants.ts` mirrors the backend limits (5 MB uploads, JPEG/PNG/WebP/GIF, 1 to 5 captions of up to 200 characters, font scale 0.5 to 2). Update it whenever the backend changes them.
